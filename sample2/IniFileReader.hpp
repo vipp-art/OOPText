@@ -1,16 +1,20 @@
 #pragma once
 #include <fstream>
+#include <map>
 #include <sstream>
 #include <string>
-#include"BaseRegisterReader.hpp"
+#include"IReader.hpp"
 
 
 /** iniファイルからデータを登録するクラス */
-class RegisterIniFileReader : public BaseRegisterReader {
+class IniFileReader : public IReader {
 
 private:
 	/** ファイル名 */
 	std::string file_;
+
+	/** データ */
+	std::map<std::string, std::string> datas_;
 
 public:
 	
@@ -18,11 +22,24 @@ public:
 	 * iniファイルを指定して初期化
 	 * @param filename iniファイル名
 	 */
-	RegisterIniFileReader( std::string filename ) : file_(filename) {
+	IniFileReader( std::string filename ) : file_(filename) {
 	}
 	
 	/** */
-	virtual ~RegisterIniFileReader() {}
+	virtual ~IniFileReader() {}
+	
+	
+	/** 指定のタグを64ビット整数で取得 */
+	virtual int64 getInt64( std::string tag )
+	{
+		return std::stoll( getText( tag ) );
+	}
+
+	/** 指定のタグを文字列で取得 */
+	virtual std::string getText( std::string tag )
+	{
+		return datas_[tag];
+	}
 	
 	/** ファイル解析 */
 	virtual void read() {
@@ -60,21 +77,14 @@ public:
 				buffer << c;
 			}
 			std::string tag = buffer.str();
-			std::string value = trim( line.substr( i ) );
 			
-			if ( tag == "id" ) {
-				id = std::stoll( value );
-				if ( !title.empty() ) { break; }
-			} else if ( tag == "title" ) {
-				title = value;
-				if ( id != 0 ) { break; }
+			if ( tag.empty() ) {
+				continue;
 			}
 			
+			std::string value = trim( line.substr( i ) );
+			datas_[tag] = value;
 		}
-		
-		
-		this->id( id );
-		this->title( title );
 	}
 
 private:
@@ -108,6 +118,13 @@ private:
 			}
 			break;
 		}
-		return s.substr( left, right - left + 1 );
+		int l = right - left + 1;
+		if ( l <= 0 ) {
+			return "";
+		}
+		if ( l + left > length ) {
+			l = length - left;
+		}
+		return s.substr( left, l );
 	}
 };
